@@ -36,7 +36,7 @@ const banner = blessed.text({
   height: 'shrink',
   content: getBanner(),
   style: {
-    fg: 'cyan'
+    fg: 'purple'
   }
 });
 
@@ -78,7 +78,7 @@ const logBox = blessed.log({
     scrollbar: {
       ch: ' ',
       track: {
-        bg: 'cyan'
+        bg: 'purple'
       },
       style: {
         inverse: true
@@ -88,7 +88,7 @@ const logBox = blessed.log({
       fg: 'white',
       bg: 'black',
       border: {
-        fg: '#f0f0f0'
+        fg: 'purple'
       }
     }
   });
@@ -106,7 +106,7 @@ const inputBox = blessed.textbox({
       fg: 'white',
       bg: 'black',
       border: {
-        fg: 'cyan'
+        fg: 'purple'
       }
     }
   });
@@ -232,7 +232,7 @@ async function sendMessageToOpenRouter(message) {
 }
 
 async function initialize() {
-    const spinner = ora({ text: 'Loading environment', spinner: 'dots', color: 'cyan' }).start();
+    const spinner = ora({ text: 'Loading environment', spinner: 'dots', color: 'purple' }).start();
     await new Promise(res => setTimeout(res, 1500));
     loadEnv();
     spinner.succeed('Environment loaded');
@@ -248,22 +248,23 @@ async function initialize() {
         spinner.fail('Connection failed');
         logBox.log(chalk.red(`❌ Error: ${connectionResult.error || 'Could not connect'}`));
         logBox.log(chalk.yellow('Please check your API key and .env file.'));
+        inputBox.focus();
     }
     screen.render();
 }
 
 inputBox.on('submit', async (text) => {
     if (text.trim()) {
-        logBox.log(chalk.cyan('> ') + text);
+        logBox.log(chalk.keyword('orange')('> ') + text);
         inputBox.clearValue();
         screen.render();
         
-        const spinner = ora({ text: 'Thinking...', spinner: 'bouncingBar', color: 'yellow' }).start();
+        const spinner = ora({ text: 'Thinking...', spinner: 'bouncingBar', color: 'purple' }).start();
         const response = await sendMessageToOpenRouter(text);
         spinner.stop();
         
         if (response.success) {
-            logBox.log(chalk.magenta('🤖 Agent: ') + response.message);
+            logBox.log(chalk.keyword('purple')('🤖 Agent: ') + response.message);
         } else {
             logBox.log(chalk.red('❌ Error: ') + response.error);
         }
