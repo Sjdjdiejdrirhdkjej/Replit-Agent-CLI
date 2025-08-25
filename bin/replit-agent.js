@@ -1,39 +1,119 @@
 #!/usr/bin/env node
 
-const readline = require('readline');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const blessed = require('blessed');
+const chalk = require('chalk');
+const ora = require('ora');
 
-function clearScreen() {
-    process.stdout.write('\x1b[2J\x1b[0f');
+// Create a screen object.
+const screen = blessed.screen({
+  smartCSR: true,
+  title: 'Replit Agent'
+});
+
+// Main content box
+const mainBox = blessed.box({
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  style: {
+    fg: 'white',
+    bg: 'black'
+  }
+});
+
+screen.append(mainBox);
+
+// Banner
+const banner = blessed.text({
+  parent: mainBox,
+  top: 1,
+  left: 'center',
+  width: '80%',
+  height: 'shrink',
+  content: getBanner(),
+  style: {
+    fg: 'cyan'
+  }
+});
+
+function getBanner() {
+    return `
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║                                                               ║
+    ║   ██████╗ ███████╗██████╗ ██╗     ██╗████████╗               ║
+    ║   ██╔══██╗██╔════╝██╔══██╗██║     ██║╚══██╔══╝               ║
+    ║   ██████╔╝█████╗  ██████╔╝██║     ██║   ██║                  ║
+    ║   ██╔══██╗██╔══╝  ██╔═══╝ ██║     ██║   ██║                  ║
+    ║   ██║  ██║███████╗██║     ███████╗██║   ██║                  ║
+    ║   ╚═╝  ╚═╝╚══════╝╚═╝     ╚══════╝╚═╝   ╚═╝                  ║
+    ║                                                               ║
+    ║              █████╗  █████╗  ██████╗ ███████╗███╗   ██╗████████╗║
+    ║             ██╔══██╗██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝║
+    ║             ███████║███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   ║
+    ║             ██╔══██║██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ║
+    ║             ██║  ██║██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ║
+    ║             ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ║
+    ║                                                               ║
+    ║                        🚀 Welcome to the                      ║
+    ║                      REPLIT AGENT SYSTEM                     ║
+    ║                                                               ║
+    ╚═══════════════════════════════════════════════════════════════╝
+    `;
 }
 
-function printBanner() {
-    const banner = `
-╔═══════════════════════════════════════════════════════════════╗
-║                                                               ║
-║   ██████╗ ███████╗██████╗ ██╗     ██╗████████╗               ║
-║   ██╔══██╗██╔════╝██╔══██╗██║     ██║╚══██╔══╝               ║
-║   ██████╔╝█████╗  ██████╔╝██║     ██║   ██║                  ║
-║   ██╔══██╗██╔══╝  ██╔═══╝ ██║     ██║   ██║                  ║
-║   ██║  ██║███████╗██║     ███████╗██║   ██║                  ║
-║   ╚═╝  ╚═╝╚══════╝╚═╝     ╚══════╝╚═╝   ╚═╝                  ║
-║                                                               ║
-║              █████╗  █████╗  ██████╗ ███████╗███╗   ██╗████████╗║
-║             ██╔══██╗██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝║
-║             ███████║███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   ║
-║             ██╔══██║██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ║
-║             ██║  ██║██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ║
-║             ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ║
-║                                                               ║
-║                        🚀 Welcome to the                      ║
-║                      REPLIT AGENT SYSTEM                     ║
-║                                                               ║
-╚═══════════════════════════════════════════════════════════════╝
-`;
-    return banner;
-}
+// Log box for messages
+const logBox = blessed.log({
+    parent: mainBox,
+    top: 25,
+    left: 'center',
+    width: '95%',
+    height: '60%',
+    border: 'line',
+    scrollable: true,
+    alwaysScroll: true,
+    scrollbar: {
+      ch: ' ',
+      track: {
+        bg: 'cyan'
+      },
+      style: {
+        inverse: true
+      }
+    },
+    style: {
+      fg: 'white',
+      bg: 'black',
+      border: {
+        fg: '#f0f0f0'
+      }
+    }
+  });
+
+// Input box for user messages
+const inputBox = blessed.textbox({
+    parent: mainBox,
+    bottom: 0,
+    left: 'center',
+    width: '95%',
+    height: 3,
+    border: 'line',
+    inputOnFocus: true,
+    style: {
+      fg: 'white',
+      bg: 'black',
+      border: {
+        fg: 'cyan'
+      }
+    }
+  });
+
+screen.render();
+
+// --- Core Logic ---
 
 function loadEnv() {
     const envPaths = [
@@ -43,48 +123,38 @@ function loadEnv() {
     ];
     
     for (const envPath of envPaths) {
-        try {
-            if (fs.existsSync(envPath)) {
-                const envFile = fs.readFileSync(envPath, 'utf8');
-                const envLines = envFile.split('\n');
-                for (const line of envLines) {
-                    if (line.trim() && !line.startsWith('#')) {
-                        const [key, ...valueParts] = line.split('=');
-                        if (key && valueParts.length > 0) {
-                            process.env[key.trim()] = valueParts.join('=').trim();
-                        }
+        if (fs.existsSync(envPath)) {
+            const envFile = fs.readFileSync(envPath, 'utf8');
+            envFile.split('\n').forEach(line => {
+                if (line.trim() && !line.startsWith('#')) {
+                    const [key, ...valueParts] = line.split('=');
+                    if (key && valueParts.length > 0) {
+                        process.env[key.trim()] = valueParts.join('=').trim();
                     }
                 }
-                console.log(`\x1b[32m  Loaded config from: ${envPath}\x1b[0m`);
-                return;
-            }
-        } catch (error) {
-            continue;
+            });
+            logBox.log(chalk.green(`  Loaded config from: ${envPath}`));
+            screen.render();
+            return;
         }
     }
-    
-    console.log('\x1b[33m  No .env file found. Create one with OPENROUTER_API_KEY=your_key\x1b[0m');
-    console.log('\x1b[33m  Locations checked: current directory, ~/.replit-agent.env, ~/.env\x1b[0m');
+    logBox.log(chalk.yellow('  No .env file found. Create one with OPENROUTER_API_KEY=your_key'));
+    logBox.log(chalk.yellow('  Locations checked: current directory, ~/.replit-agent.env, ~/.env'));
+    screen.render();
 }
 
 async function testOpenRouterConnection() {
     const models = [
-        "deepseek/deepseek-r1",
-        "deepseek/deepseek-r1-distill-llama-70b", 
-        "deepseek/deepseek-r1-distill-qwen-32b",
-        "deepseek/deepseek-chat",
-        "google/gemini-flash-1.5",
-        "qwen/qwen-2.5-7b-instruct:free",
-        "meta-llama/llama-3.2-3b-instruct:free",  
-        "microsoft/phi-3-mini-128k-instruct:free",
-        "qwen/qwen-2.5-72b-instruct"
+        "deepseek/deepseek-r1", "google/gemini-flash-1.5", "qwen/qwen-2.5-7b-instruct:free",
+        "meta-llama/llama-3.2-3b-instruct:free", "microsoft/phi-3-mini-128k-instruct:free"
     ];
     
     for (const model of models) {
         const result = await tryModel(model);
         if (result.success) {
             global.selectedModel = model;
-            console.log(`\x1b[32m  Using model: ${model}\x1b[0m`);
+            logBox.log(chalk.green(`  Using model: ${model}`));
+            screen.render();
             return { success: true, model };
         }
     }
@@ -95,131 +165,55 @@ async function testOpenRouterConnection() {
 async function tryModel(modelName) {
     return new Promise((resolve) => {
         const apiKey = process.env.OPENROUTER_API_KEY;
-        
         if (!apiKey || apiKey === 'your_api_key_here') {
-            resolve({ success: false, error: 'No API key found in .env' });
-            return;
+            return resolve({ success: false, error: 'No API key' });
         }
 
-        const postData = JSON.stringify({
-            model: modelName,
-            messages: [{ role: "user", content: "Hi" }],
-            max_tokens: 5
-        });
-
+        const postData = JSON.stringify({ model: modelName, messages: [{ role: "user", content: "Hi" }], max_tokens: 5 });
         const options = {
-            hostname: 'openrouter.ai',
-            port: 443,
-            path: '/api/v1/chat/completions',
-            method: 'POST',
+            hostname: 'openrouter.ai', port: 443, path: '/api/v1/chat/completions', method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://localhost',
-                'X-Title': 'Replit Agent'
+                'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`,
+                'HTTP-Referer': 'https://localhost', 'X-Title': 'Replit Agent'
             }
         };
 
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
             let data = '';
-            res.on('data', (chunk) => data += chunk);
+            res.on('data', chunk => data += chunk);
             res.on('end', () => {
                 if (res.statusCode === 200) {
                     try {
-                        const response = JSON.parse(data);
-                        resolve({ success: true, response });
-                    } catch {
-                        resolve({ success: false });
-                    }
-                } else {
-                    resolve({ success: false, statusCode: res.statusCode, data });
-                }
+                        JSON.parse(data);
+                        resolve({ success: true });
+                    } catch { resolve({ success: false }); }
+                } else { resolve({ success: false }); }
             });
         });
-
-        req.on('error', (error) => {
-            resolve({ success: false, error: error.message });
-        });
-
-        req.setTimeout(5000, () => {
-            req.destroy();
-            resolve({ success: false, error: 'timeout' });
-        });
-
+        req.on('error', () => resolve({ success: false }));
+        req.setTimeout(5000, () => { req.destroy(); resolve({ success: false, error: 'timeout' }); });
         req.write(postData);
         req.end();
     });
-}
-
-async function animateLoading() {
-    const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-    
-    // Step 1: Load environment
-    process.stdout.write("\n" + " ".repeat(20) + "Loading environment");
-    for (let i = 0; i < 5; i++) {
-        for (const frame of frames) {
-            process.stdout.write(`\r${" ".repeat(20)}Loading environment ${frame}`);
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-    }
-    process.stdout.write(`\r${" ".repeat(20)}Loading environment ✓\n`);
-    
-    loadEnv();
-    
-    // Step 2: Connect to OpenRouter
-    process.stdout.write(" ".repeat(20) + "Connecting to OpenRouter");
-    for (let i = 0; i < 10; i++) {
-        for (const frame of frames) {
-            process.stdout.write(`\r${" ".repeat(20)}Connecting to OpenRouter ${frame}`);
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-    }
-    
-    const connectionResult = await testOpenRouterConnection();
-    
-    if (connectionResult.success) {
-        process.stdout.write(`\r${" ".repeat(20)}Connecting to OpenRouter ✓\n`);
-        return { connected: true };
-    } else {
-        process.stdout.write(`\r${" ".repeat(20)}Connecting to OpenRouter ✗\n`);
-        console.log(`\x1b[31m  Error: ${connectionResult.error || 'Connection failed'}\x1b[0m`);
-        return { connected: false, error: connectionResult.error };
-    }
 }
 
 async function sendMessageToOpenRouter(message) {
     return new Promise((resolve) => {
         const apiKey = process.env.OPENROUTER_API_KEY;
         const model = global.selectedModel || "deepseek/deepseek-r1";
-        
-        const postData = JSON.stringify({
-            model: model,
-            messages: [{ role: "user", content: message }],
-            max_tokens: 1000,
-            temperature: 0.7
-        });
-
+        const postData = JSON.stringify({ model, messages: [{ role: "user", content: message }], max_tokens: 1000, temperature: 0.7 });
         const options = {
-            hostname: 'openrouter.ai',
-            port: 443,
-            path: '/api/v1/chat/completions',
-            method: 'POST',
+            hostname: 'openrouter.ai', port: 443, path: '/api/v1/chat/completions', method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://localhost',
-                'X-Title': 'Replit Agent',
+                'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`,
+                'HTTP-Referer': 'https://localhost', 'X-Title': 'Replit Agent',
                 'Content-Length': Buffer.byteLength(postData)
             }
         };
 
-        const req = https.request(options, (res) => {
+        const req = https.request(options, res => {
             let data = '';
-            
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
-
+            res.on('data', chunk => data += chunk);
             res.on('end', () => {
                 try {
                     const response = JSON.parse(data);
@@ -228,114 +222,67 @@ async function sendMessageToOpenRouter(message) {
                     } else {
                         resolve({ success: false, error: 'No response from AI' });
                     }
-                } catch (error) {
-                    resolve({ success: false, error: 'Failed to parse response' });
-                }
+                } catch (error) { resolve({ success: false, error: 'Failed to parse response' }); }
             });
         });
-
-        req.on('error', (error) => {
-            resolve({ success: false, error: error.message });
-        });
-
+        req.on('error', error => resolve({ success: false, error: error.message }));
         req.write(postData);
         req.end();
     });
 }
 
-async function startChatMode() {
-    console.log('\n🤖 \x1b[32mReplit Agent is ready! Type your messages below (type "exit" to quit)\x1b[0m\n');
-    
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
+async function initialize() {
+    const spinner = ora({ text: 'Loading environment', spinner: 'dots', color: 'cyan' }).start();
+    await new Promise(res => setTimeout(res, 1500));
+    loadEnv();
+    spinner.succeed('Environment loaded');
 
-    const askQuestion = () => {
-        rl.question('\x1b[34m> \x1b[0m', async (input) => {
-            if (input.toLowerCase() === 'exit') {
-                console.log('\n👋 \x1b[36mGoodbye from Replit Agent!\x1b[0m');
-                rl.close();
-                return;
-            }
+    spinner.start('Connecting to OpenRouter');
+    const connectionResult = await testOpenRouterConnection();
 
-            if (input.trim()) {
-                process.stdout.write('\x1b[33m🤔 Thinking...\x1b[0m');
-                
-                const response = await sendMessageToOpenRouter(input);
-                
-                process.stdout.write('\r\x1b[K');
-                
-                if (response.success) {
-                    console.log('\x1b[32m🤖 Agent:\x1b[0m', response.message);
-                } else {
-                    console.log('\x1b[31m❌ Error:\x1b[0m', response.error);
-                }
-            }
-            
-            console.log();
-            askQuestion();
-        });
-    };
-
-    askQuestion();
-}
-
-async function main() {
-    try {
-        clearScreen();
-        
-        // Print fancy banner with colors
-        console.log('\x1b[36m%s\x1b[0m', printBanner());
-        
-        // Animate loading and connect to OpenRouter
-        const initResult = await animateLoading();
-        
-        // Show system info
-        console.log("\n" + "=".repeat(65));
-        if (initResult.connected) {
-            console.log("  STATUS: \x1b[32mOnline and Ready ✓\x1b[0m");
-            console.log("  API: \x1b[32mOpenRouter Connected ✓\x1b[0m");
-        } else {
-            console.log("  STATUS: \x1b[31mOffline - API Connection Failed ✗\x1b[0m");
-            console.log("  API: \x1b[31mOpenRouter Disconnected ✗\x1b[0m");
-        }
-        console.log("  MODE: Interactive AI Assistant");  
-        console.log("  VERSION: 2.0.0");
-        console.log("=".repeat(65));
-        
-        if (initResult.connected) {
-            // Start chat mode
-            await startChatMode();
-        } else {
-            console.log("\n\x1b[31m❌ Cannot start chat mode without API connection\x1b[0m");
-            console.log("   Please check your .env file and ensure OPENROUTER_API_KEY is set correctly.");
-            console.log("\n  Press Enter to exit...");
-            
-            const rl = readline.createInterface({
-                input: process.stdin,
-                output: process.stdout
-            });
-            
-            rl.question('', () => {
-                rl.close();
-                process.exit(1);
-            });
-        }
-        
-    } catch (error) {
-        if (error.code === 'SIGINT') {
-            console.log("\n\n  👋 Goodbye from Replit Agent!");
-            process.exit(0);
-        }
-        console.error("Unexpected error:", error);
-        process.exit(1);
+    if (connectionResult.success) {
+        spinner.succeed('OpenRouter connected');
+        logBox.log(chalk.green.bold('\n🤖 Replit Agent is ready! Type your messages below.\n'));
+        inputBox.focus();
+    } else {
+        spinner.fail('Connection failed');
+        logBox.log(chalk.red(`❌ Error: ${connectionResult.error || 'Could not connect'}`));
+        logBox.log(chalk.yellow('Please check your API key and .env file.'));
     }
+    screen.render();
 }
 
-process.on('SIGINT', () => {
-    console.log("\n\n  👋 Goodbye from Replit Agent!");
-    process.exit(0);
+inputBox.on('submit', async (text) => {
+    if (text.trim()) {
+        logBox.log(chalk.cyan('> ') + text);
+        inputBox.clearValue();
+        screen.render();
+        
+        const spinner = ora({ text: 'Thinking...', spinner: 'bouncingBar', color: 'yellow' }).start();
+        const response = await sendMessageToOpenRouter(text);
+        spinner.stop();
+        
+        if (response.success) {
+            logBox.log(chalk.magenta('🤖 Agent: ') + response.message);
+        } else {
+            logBox.log(chalk.red('❌ Error: ') + response.error);
+        }
+        logBox.log(''); // Add a blank line for spacing
+    }
+    inputBox.focus();
+    screen.render();
 });
 
-main();
+// Quit on Escape, q, or Control-C.
+screen.key(['escape', 'q', 'C-c'], function(ch, key) {
+  return process.exit(0);
+});
+
+// Focus our element.
+inputBox.focus();
+
+// Render the screen.
+screen.render();
+
+// Start the initialization process
+initialize();
