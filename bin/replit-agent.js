@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const blessed = require('blessed');
 const chalk = require('chalk');
-const ora = require('ora');
 
 // Create a screen object.
 const screen = blessed.screen({
@@ -232,20 +231,23 @@ async function sendMessageToOpenRouter(message) {
 }
 
 async function initialize() {
-    const spinner = ora({ text: 'Loading environment', spinner: 'dots', color: 'purple' }).start();
+    logBox.log('Loading environment...');
+    screen.render();
     await new Promise(res => setTimeout(res, 1500));
     loadEnv();
-    spinner.succeed('Environment loaded');
+    logBox.log('Environment loaded');
+    screen.render();
 
-    spinner.start('Connecting to OpenRouter');
+    logBox.log('Connecting to OpenRouter...');
+    screen.render();
     const connectionResult = await testOpenRouterConnection();
 
     if (connectionResult.success) {
-        spinner.succeed('OpenRouter connected');
+        logBox.log('OpenRouter connected');
         logBox.log(chalk.green.bold('\n🤖 Replit Agent is ready! Type your messages below.\n'));
         inputBox.focus();
     } else {
-        spinner.fail('Connection failed');
+        logBox.log(chalk.red('Connection failed'));
         logBox.log(chalk.red(`❌ Error: ${connectionResult.error || 'Could not connect'}`));
         logBox.log(chalk.yellow('Please check your API key and .env file.'));
         inputBox.focus();
@@ -259,9 +261,9 @@ inputBox.on('submit', async (text) => {
         inputBox.clearValue();
         screen.render();
         
-        const spinner = ora({ text: 'Thinking...', spinner: 'bouncingBar', color: 'purple' }).start();
+        logBox.log('Thinking...');
+        screen.render();
         const response = await sendMessageToOpenRouter(text);
-        spinner.stop();
         
         if (response.success) {
             logBox.log(chalk.keyword('purple')('🤖 Agent: ') + response.message);
