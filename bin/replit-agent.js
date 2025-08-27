@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const blessed = require('blessed');
 const chalk = require('chalk');
-const ora = require('ora');
 
 // Create a screen object.
 const screen = blessed.screen({
@@ -115,6 +114,11 @@ screen.render();
 
 // --- Core Logic ---
 
+function isApiKeyValid() {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    return apiKey && apiKey !== 'your_api_key_here';
+}
+
 function loadEnv() {
     const envPaths = [
         path.join(process.cwd(), '.env'),
@@ -165,10 +169,6 @@ async function testOpenRouterConnection() {
 async function tryModel(modelName) {
     return new Promise((resolve) => {
         const apiKey = process.env.OPENROUTER_API_KEY;
-        if (!apiKey || apiKey === 'your_api_key_here') {
-            return resolve({ success: false, error: 'No API key' });
-        }
-
         const postData = JSON.stringify({ model: modelName, messages: [{ role: "user", content: "Hi" }], max_tokens: 5 });
         const options = {
             hostname: 'openrouter.ai', port: 443, path: '/api/v1/chat/completions', method: 'POST',
@@ -232,22 +232,38 @@ async function sendMessageToOpenRouter(message) {
 }
 
 async function initialize() {
-    const spinner = ora({ text: 'Loading environment', spinner: 'dots', color: 'purple' }).start();
+    logBox.log('Loading environment...');
+    screen.render();
     await new Promise(res => setTimeout(res, 1500));
     loadEnv();
-    spinner.succeed('Environment loaded');
+    logBox.log('Environment loaded');
+    screen.render();
 
-    spinner.start('Connecting to OpenRouter');
+    if (!isApiKeyValid()) {
+        logBox.log(chalk.red.bold('\n---[ WARNING: API Key Not Found ]---'));
+        logBox.log(chalk.yellow('  Your OpenRouter API key is missing or invalid.'));
+        logBox.log(chalk.yellow('  Please create a `.env` file and add your key:'));
+        logBox.log(chalk.cyan('  OPENROUTER_API_KEY=your_key_here'));
+        logBox.log(chalk.yellow('  The agent will not be able to connect to the AI.'));
+        logBox.log(chalk.yellow('  You can still use `exit` or `Ctrl+C` to quit.'));
+        logBox.log(chalk.red.bold('-------------------------------------\n'));
+        inputBox.focus();
+        screen.render();
+        return;
+    }
+
+    logBox.log('Connecting to OpenRouter...');
+    screen.render();
     const connectionResult = await testOpenRouterConnection();
 
     if (connectionResult.success) {
-        spinner.succeed('OpenRouter connected');
+        logBox.log('OpenRouter connected');
         logBox.log(chalk.green.bold('\n🤖 Replit Agent is ready! Type your messages below.\n'));
         inputBox.focus();
     } else {
-        spinner.fail('Connection failed');
+        logBox.log(chalk.red('Connection failed'));
         logBox.log(chalk.red(`❌ Error: ${connectionResult.error || 'Could not connect'}`));
-        logBox.log(chalk.yellow('Please check your API key and .env file.'));
+        logBox.log(chalk.yellow('Please check your API key and internet connection.'));
         inputBox.focus();
     }
     screen.render();
@@ -258,10 +274,17 @@ inputBox.on('submit', async (text) => {
         logBox.log(chalk.keyword('orange')('> ') + text);
         inputBox.clearValue();
         screen.render();
+
+        if (!isApiKeyValid()) {
+            logBox.log(chalk.red('❌ Cannot send message: OpenRouter API key not configured.'));
+            inputBox.focus();
+            screen.render();
+            return;
+        }
         
-        const spinner = ora({ text: 'Thinking...', spinner: 'bouncingBar', color: 'purple' }).start();
+        logBox.log('Thinking...');
+        screen.render();
         const response = await sendMessageToOpenRouter(text);
-        spinner.stop();
         
         if (response.success) {
             logBox.log(chalk.keyword('purple')('🤖 Agent: ') + response.message);
